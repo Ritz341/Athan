@@ -1,0 +1,950 @@
+/* ================================================================
+   Islamic Smart Clock — Stylesheet (styles.css)
+   Dark minimalist aesthetic optimised for Surface Go 10" display.
+   Colour palette:
+     Background ......... #0a0a12  (deep navy-black)
+     Surface ............ #12121e  (card / panel)
+     Border ............. #1e1e30
+     Gold accent ........ #d4af37  (active prayer, countdowns)
+     Teal accent ........ #00b4d8  (secondary highlights)
+     Text primary ....... #f0f0f5
+     Text secondary ..... #8888aa
+   ================================================================ */
+
+/* ── Fonts & root variables ─────────────────────────────────── */
+
+/* DS-Digital Bold — local LED/segment clock font */
+@font-face {
+  font-family: 'DS-DIGIB';
+  src: url('assets/fonts/DS-DIGIB.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Google Fonts: Rajdhani (UI labels) + Noto Naskh Arabic (Quranic text) */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:           #0a0a12;
+  --surface:      #12121e;
+  --border:       #1e1e30;
+  --gold:         #d4af37;
+  --gold-dim:     rgba(212,175,55,0.15);
+  --gold-glow:    rgba(212,175,55,0.35);
+  --teal:         #00b4d8;
+  --teal-dim:     rgba(0,180,216,0.12);
+  --text:         #f0f0f5;
+  --text-mid:     #aaaacc;
+  --text-dim:     #55557a;
+  --font-clock:   'DS-DIGIB', 'Courier New', monospace;
+  --font-ui:      'Rajdhani', 'Segoe UI', sans-serif;
+  --font-arabic:  'Noto Naskh Arabic', 'Traditional Arabic', serif;
+  --radius:       14px;
+  --radius-sm:    8px;
+}
+
+/* ── Reset & base ───────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width:  100vw;
+  height: 100vh;
+  overflow: hidden;           /* never scroll — dedicated kiosk display */
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;          /* no text selection on touch/drag */
+  -webkit-user-select: none;
+}
+
+/* ── Cursor auto-hide ───────────────────────────────────────── */
+body.hide-cursor,
+body.hide-cursor * {
+  cursor: none !important;
+}
+
+/* ================================================================
+   WALLPAPER LAYERS
+   Two full-screen divs that sit behind everything.
+   renderer.js crossfades between them by toggling .active.
+   ================================================================ */
+.wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;   /* must be negative so it paints BEHIND normal-flow content */
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.8s ease-in-out;
+  pointer-events: none;
+}
+.wallpaper-layer.active {
+  opacity: 1;
+}
+
+/* Dark overlay so text stays readable over any photo */
+.wallpaper-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+}
+
+/* When wallpaper mode is on — body must be transparent so layers show through */
+body.theme-wallpaper {
+  background: transparent;
+}
+body.theme-wallpaper::before {
+  display: none;
+}
+
+/* Slightly increase card opacity in wallpaper mode for legibility */
+body.theme-wallpaper .prayer-card {
+  background: rgba(10, 10, 18, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(255,255,255,0.08);
+}
+body.theme-wallpaper .top-bar {
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+body.theme-wallpaper .quran-banner {
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ── Subtle animated gradient background ───────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,70,120,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(80,30,80,0.15) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Full-page flex layout ──────────────────────────────────── */
+body {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================
+   TOP BAR
+   ================================================================ */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 32px 6px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+  height: 52px;
+  position: relative;
+  z-index: 1;   /* above wallpaper layers (z-index: -1) */
+}
+
+.basmala {
+  font-family: var(--font-arabic);
+  font-size: clamp(1.1rem, 2.2vh, 1.6rem);
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+.location-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-mid);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.location-icon {
+  color: var(--teal);
+  font-size: 0.7rem;
+}
+
+/* ================================================================
+   MAIN CONTENT
+   ================================================================ */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 28px;
+  gap: 0;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================
+   CLOCK SECTION
+   ================================================================ */
+.clock-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 16px 0 8px;
+}
+
+/* Time row: digits + AM/PM side by side */
+.time-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.time-display {
+  font-family: var(--font-clock);
+  font-size: clamp(3.8rem, 11vh, 7.5rem);
+  font-weight: 700;
+  color: var(--clock-color, #ffffff);
+  letter-spacing: 4px;
+  line-height: 1;
+  transition: color 1.2s ease, text-shadow 1.2s ease;
+  text-shadow:
+    0 0 30px var(--clock-glow, rgba(212,175,55,0.30)),
+    0 0 80px var(--clock-glow, rgba(212,175,55,0.12)),
+    0 2px 8px rgba(0,0,0,0.8);
+}
+
+/* Blinking colon between time units */
+.colon {
+  display: inline-block;
+  animation: blink-colon 1s step-end infinite;
+  color: var(--clock-color, var(--gold));
+  opacity: 0.85;
+  transition: color 1.2s ease;
+}
+
+@keyframes blink-colon {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 0.12; }
+}
+
+.ampm-display {
+  font-family: var(--font-clock);
+  font-size: clamp(1.2rem, 3.5vh, 2.4rem);
+  font-weight: 700;
+  color: var(--clock-color, var(--gold));
+  margin-top: 0.7em;
+  letter-spacing: 2px;
+  transition: color 1.2s ease, text-shadow 1.2s ease;
+  text-shadow: 0 0 18px var(--clock-glow, var(--gold-glow));
+}
+
+/* Date labels */
+.date-gregorian {
+  font-family: var(--font-ui);
+  font-size: clamp(1rem, 2.2vh, 1.5rem);
+  font-weight: 600;
+  color: var(--text-mid);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.date-hijri {
+  font-family: var(--font-arabic);
+  font-size: clamp(1rem, 2.1vh, 1.45rem);
+  font-weight: 500;
+  color: var(--gold);
+  opacity: 0.75;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* ================================================================
+   PRAYERS GRID
+   ================================================================ */
+.prayers-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  min-height: 0;
+}
+
+.prayers-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+/* ── Prayer card ─────────────────────────────────────────────── */
+.prayer-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 10px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle shimmer line at top of each card */
+.prayer-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  transition: background 0.5s ease;
+}
+
+.prayer-icon {
+  font-size: clamp(1.2rem, 2.5vh, 1.8rem);
+  line-height: 1;
+  margin-bottom: 2px;
+  filter: grayscale(40%);
+  transition: filter 0.5s ease;
+}
+
+.prayer-name-en {
+  font-family: var(--font-ui);
+  font-size: clamp(0.85rem, 1.8vh, 1.2rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prayer-name-ar {
+  font-family: var(--font-arabic);
+  font-size: clamp(0.8rem, 1.7vh, 1.1rem);
+  font-weight: 500;
+  color: var(--text-dim);
+  transition: color 0.5s ease;
+}
+
+.prayer-time {
+  font-family: var(--font-clock);
+  font-size: clamp(1.1rem, 2.8vh, 2rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 2px;
+  margin-top: 4px;
+  transition: color 0.5s ease;
+}
+
+.prayer-status {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: transparent;
+  min-height: 16px;
+  transition: color 0.4s ease;
+}
+
+/* ── Active (current / next) prayer states ─────────────────── */
+
+/* CURRENT prayer — full gold glow */
+.prayer-card.state-current {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  box-shadow:
+    0 0 24px var(--gold-glow),
+    inset 0 0 16px rgba(212,175,55,0.08);
+  transform: translateY(-3px);
+}
+.prayer-card.state-current::before {
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.prayer-card.state-current .prayer-icon  { filter: none; }
+.prayer-card.state-current .prayer-time  { color: var(--gold); text-shadow: 0 0 10px var(--gold-glow); }
+.prayer-card.state-current .prayer-name-ar { color: var(--gold); opacity: 0.8; }
+.prayer-card.state-current .prayer-status  { color: var(--gold); }
+
+/* NEXT prayer — softer teal highlight */
+.prayer-card.state-next {
+  background: var(--teal-dim);
+  border-color: rgba(0,180,216,0.4);
+  box-shadow: 0 0 14px rgba(0,180,216,0.2);
+}
+.prayer-card.state-next::before {
+  background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  opacity: 0.5;
+}
+.prayer-card.state-next .prayer-time { color: var(--teal); }
+.prayer-card.state-next .prayer-status { color: var(--teal); }
+
+/* PASSED prayer — dimmed */
+.prayer-card.state-passed {
+  opacity: 0.45;
+}
+
+/* ── Pulse animation on current prayer card ─────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 24px var(--gold-glow), inset 0 0 16px rgba(212,175,55,0.08); }
+  50%       { box-shadow: 0 0 40px rgba(212,175,55,0.55), inset 0 0 22px rgba(212,175,55,0.14); }
+}
+.prayer-card.state-current {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ================================================================
+   COUNTDOWN SECTION
+   ================================================================ */
+.countdown-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 10px;
+  gap: 4px;
+}
+
+.countdown-label {
+  font-family: var(--font-ui);
+  font-size: clamp(0.85rem, 2vh, 1.2rem);
+  font-weight: 600;
+  color: var(--text-mid);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.next-prayer-accent {
+  color: var(--teal);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.countdown-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.cd-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.cd-digits {
+  font-family: var(--font-clock);
+  font-size: clamp(2rem, 6.5vh, 5rem);
+  font-weight: 900;
+  color: var(--clock-color, var(--gold));
+  letter-spacing: 3px;
+  line-height: 1;
+  text-shadow:
+    0 0 20px var(--clock-glow, var(--gold-glow)),
+    0 2px 6px rgba(0,0,0,0.5);
+  transition: color 1.2s ease, text-shadow 1.2s ease;
+}
+
+/* Flash red when less than 5 minutes remain */
+.countdown-display.imminent .cd-digits {
+  color: #ff6b6b;
+  text-shadow: 0 0 20px rgba(255,100,100,0.5);
+  animation: flash-imminent 1s ease-in-out infinite alternate;
+}
+@keyframes flash-imminent {
+  from { opacity: 1.0; }
+  to   { opacity: 0.7; }
+}
+
+.cd-sep {
+  font-family: var(--font-clock);
+  font-size: clamp(2rem, 6.5vh, 5rem);
+  font-weight: 900;
+  color: var(--clock-color, var(--gold));
+  opacity: 0.5;
+  line-height: 1;
+  padding-bottom: 0.3em;
+  animation: blink-colon 1s step-end infinite;
+  transition: color 1.2s ease;
+}
+
+.cd-label {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ================================================================
+   QURAN BANNER (FOOTER)
+   ================================================================ */
+.quran-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-height: 96px;
+  max-height: 110px;
+  padding: 10px 24px;
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid var(--border);
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Gold shimmer line at top of banner */
+.quran-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, var(--gold) 30%, var(--gold) 70%, transparent 95%);
+  opacity: 0.35;
+}
+
+.quran-decoration {
+  font-size: 1.2rem;
+  color: var(--gold);
+  opacity: 0.35;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Verse content wrapper — takes up remaining space */
+.verse-wrapper {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Transition container — fades in/out on verse change */
+.verse-container {
+  text-align: center;
+  transition: opacity 0.8s ease;
+}
+.verse-container.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.verse-arabic {
+  font-family: var(--font-arabic);
+  font-size: clamp(1.15rem, 2.4vh, 1.7rem);
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1.55;
+  direction: rtl;
+  margin-bottom: 4px;
+  text-shadow: 0 0 8px rgba(212,175,55,0.2);
+}
+
+.verse-translation {
+  font-family: var(--font-ui);
+  font-size: clamp(0.8rem, 1.7vh, 1.05rem);
+  font-weight: 400;
+  color: var(--text-mid);
+  line-height: 1.4;
+  margin-bottom: 2px;
+  /* Prevent very long translations from overflowing */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.verse-reference {
+  font-family: var(--font-ui);
+  font-size: clamp(0.7rem, 1.4vh, 0.9rem);
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+/* ================================================================
+   SCROLLBAR — hide it globally; allow it inside settings modal
+   ================================================================ */
+::-webkit-scrollbar { display: none; }
+.settings-body::-webkit-scrollbar { display: block; width: 4px; }
+.settings-body::-webkit-scrollbar-track { background: transparent; }
+.settings-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ================================================================
+   TOP BAR — right side group
+   ================================================================ */
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ================================================================
+   SETTINGS BUTTON (gear icon in top bar)
+   ================================================================ */
+.settings-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.settings-btn:hover,
+.settings-btn:focus {
+  color: var(--gold);
+  border-color: var(--border);
+  background: rgba(212,175,55,0.08);
+  outline: none;
+}
+
+/* ================================================================
+   SETTINGS OVERLAY + MODAL
+   ================================================================ */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.settings-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.settings-modal {
+  background: #14141f;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: min(580px, 92vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 0 60px rgba(0,0,0,0.7),
+    0 0 30px rgba(212,175,55,0.06);
+  transform: translateY(16px) scale(0.97);
+  transition: transform 0.25s ease;
+  overflow: hidden;
+}
+.settings-overlay.open .settings-modal {
+  transform: translateY(0) scale(1);
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.settings-title {
+  font-family: var(--font-ui);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.settings-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.settings-close:hover { color: var(--text); background: var(--border); }
+
+/* ── Body (scrollable) ──────────────────────────────────────── */
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Fieldset groups ─────────────────────────────────────────── */
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-legend {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0 6px;
+}
+
+/* ── Rows ────────────────────────────────────────────────────── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.settings-row.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+.settings-row.two-col > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-label {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.settings-row.two-col .settings-label {
+  font-size: 0.82rem;
+}
+
+/* ── Inputs / Selects ────────────────────────────────────────── */
+.settings-input,
+.settings-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  cursor: pointer;
+}
+.settings-input:focus,
+.settings-select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold-dim);
+}
+.settings-input::placeholder { color: var(--text-dim); }
+.settings-select option { background: #14141f; color: var(--text); }
+
+/* Row that has a label + full-width input below it */
+.settings-row:has(.settings-input),
+.settings-row:has(.settings-select) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* ── Toggle switch ───────────────────────────────────────────── */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.settings-toggle input[type="checkbox"] {
+  display: none;
+}
+.toggle-track {
+  width: 46px;
+  height: 24px;
+  background: var(--border);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.25s;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: transform 0.25s, background 0.25s;
+}
+.settings-toggle input:checked + .toggle-track {
+  background: var(--gold-dim);
+  border: 1px solid var(--gold);
+}
+.settings-toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(22px);
+  background: var(--gold);
+}
+
+/* Row with toggle — keep label + toggle side by side */
+.settings-row:has(.settings-toggle) {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.settings-save {
+  background: var(--gold);
+  color: #0a0a12;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.settings-save:hover  { opacity: 0.88; transform: translateY(-1px); }
+.settings-save:active { transform: translateY(0); }
+.settings-cancel {
+  background: none;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.settings-cancel:hover { color: var(--text); border-color: var(--text-dim); }
+
+/* ── Saved toast ─────────────────────────────────────────────── */
+.settings-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--gold);
+  color: #0a0a12;
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 10px 28px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 2000;
+}
+.settings-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ================================================================
+   ATHAN PLAYING OVERLAY INDICATOR
+   (shown briefly when athan starts playing)
+   ================================================================ */
+.athan-indicator {
+  position: fixed;
+  top: 16px;
+  right: 32px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 999;
+  pointer-events: none;
+}
+.athan-indicator.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ================================================================
+   RESPONSIVE ADJUSTMENTS
+   For very small screens (e.g. Surface Go in portrait 800×1200)
+   ================================================================ */
+@media (max-height: 680px) {
+  .top-bar          { height: 40px; padding: 6px 20px; }
+  .basmala          { font-size: 1rem; }
+  .prayers-grid     { gap: 8px; }
+  .prayer-card      { padding: 10px 6px; }
+  .prayer-name-en   { font-size: 0.8rem; }
+  .prayer-time      { font-size: 1.1rem; }
+  .quran-banner     { min-height: 76px; max-height: 90px; }
+}
+
+@media (max-width: 900px) {
+  .prayers-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+  }
+}

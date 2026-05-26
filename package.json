@@ -1,0 +1,49 @@
+{
+  "name": "islamic-smart-clock",
+  "version": "1.0.0",
+  "description": "Full-screen Islamic Smart Clock for Windows 11 tablet (Surface Go)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win --x64",
+    "build:portable": "electron-builder build --win portable --x64"
+  },
+  "dependencies": {
+    "adhan": "^4.4.3"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.islamicsmartclock.app",
+    "productName": "Islamic Smart Clock",
+    "copyright": "Copyright © 2025",
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icons/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false
+    },
+    "files": [
+      "main.js",
+      "config.js",
+      "index.html",
+      "styles.css",
+      "renderer.js",
+      "assets/**/*",
+      "cache/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

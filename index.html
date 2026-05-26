@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
+                 script-src 'self';
+                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                 font-src 'self' https://fonts.gstatic.com;
+                 media-src 'self' file:;
+                 img-src 'self' data:;" />
+  <title>Islamic Smart Clock</title>
+
+  <!--
+    Fonts:
+      · DS-DIGIB   — local LED 7-segment clock font (assets/fonts/DS-DIGIB.TTF)
+      · Rajdhani   — clean geometric labels / prayer names (Google Fonts)
+      · Noto Naskh Arabic — beautiful Quranic Arabic script (Google Fonts)
+    The app works offline with system font fallbacks.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WALLPAPER LAYERS — two divs for crossfade transition
+       Managed by renderer.js startWallpaperRotation()
+  ════════════════════════════════════════════════════════ -->
+  <div id="wallpaper-a" class="wallpaper-layer"></div>
+  <div id="wallpaper-b" class="wallpaper-layer"></div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TOP BAR — Basmala + location chip
+  ════════════════════════════════════════════════════════ -->
+  <header class="top-bar">
+    <div class="basmala" lang="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <div class="top-bar-right">
+      <div class="location-chip">
+        <span class="location-icon">&#9632;</span>
+        <span id="location-label">Loading…</span>
+      </div>
+      <button class="settings-btn" id="settings-btn" title="Settings" aria-label="Open settings">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SETTINGS MODAL
+  ════════════════════════════════════════════════════════ -->
+  <div class="settings-overlay" id="settings-overlay" aria-modal="true" role="dialog" aria-label="Settings">
+    <div class="settings-modal">
+
+      <div class="settings-header">
+        <h2 class="settings-title">&#9881; Settings</h2>
+        <button class="settings-close" id="settings-close" aria-label="Close settings">&#10005;</button>
+      </div>
+
+      <div class="settings-body">
+
+        <!-- LOCATION -->
+        <fieldset class="settings-group">
+          <legend class="settings-legend">Location</legend>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-city">City Name</label>
+            <input class="settings-input" id="s-city" type="text" placeholder="e.g. Toronto" />
+          </div>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-preset">Quick Presets</label>
+            <select class="settings-select" id="s-preset">
+              <option value="">— choose a city —</option>
+              <option value="43.7001,-79.4163,Toronto">Toronto, Canada</option>
+              <option value="45.4215,-75.6972,Ottawa">Ottawa, Canada</option>
+              <option value="45.5017,-73.5673,Montreal">Montreal, Canada</option>
+              <option value="49.2827,-123.1207,Vancouver">Vancouver, Canada</option>
+              <option value="53.5461,-113.4938,Edmonton">Edmonton, Canada</option>
+              <option value="40.7128,-74.0060,New York">New York, USA</option>
+              <option value="41.8781,-87.6298,Chicago">Chicago, USA</option>
+              <option value="34.0522,-118.2437,Los Angeles">Los Angeles, USA</option>
+              <option value="29.7604,-95.3698,Houston">Houston, USA</option>
+              <option value="38.9072,-77.0369,Washington DC">Washington DC, USA</option>
+              <option value="42.3601,-71.0589,Boston">Boston, USA</option>
+              <option value="33.4484,-112.0740,Phoenix">Phoenix, USA</option>
+              <option value="21.3891,39.8579,Makkah">Makkah, Saudi Arabia</option>
+              <option value="24.4672,39.6150,Madinah">Madinah, Saudi Arabia</option>
+              <option value="24.7136,46.6753,Riyadh">Riyadh, Saudi Arabia</option>
+              <option value="25.2048,55.2708,Dubai">Dubai, UAE</option>
+              <option value="30.0444,31.2357,Cairo">Cairo, Egypt</option>
+              <option value="33.8869,9.5375,Tunis">Tunis, Tunisia</option>
+              <option value="51.5074,-0.1278,London">London, UK</option>
+              <option value="48.8566,2.3522,Paris">Paris, France</option>
+              <option value="52.5200,13.4050,Berlin">Berlin, Germany</option>
+              <option value="23.8103,90.4125,Dhaka">Dhaka, Bangladesh</option>
+              <option value="24.8607,67.0011,Karachi">Karachi, Pakistan</option>
+              <option value="31.5204,74.3587,Lahore">Lahore, Pakistan</option>
+              <option value="33.6844,73.0479,Islamabad">Islamabad, Pakistan</option>
+              <option value="28.6139,77.2090,New Delhi">New Delhi, India</option>
+              <option value="19.0760,72.8777,Mumbai">Mumbai, India</option>
+              <option value="3.1390,101.6869,Kuala Lumpur">Kuala Lumpur, Malaysia</option>
+              <option value="1.3521,103.8198,Singapore">Singapore</option>
+            </select>
+          </div>
+
+          <div class="settings-row two-col">
+            <div>
+              <label class="settings-label" for="s-lat">Latitude</label>
+              <input class="settings-input" id="s-lat" type="number" step="0.0001" min="-90" max="90" placeholder="43.7001" />
+            </div>
+            <div>
+              <label class="settings-label" for="s-lng">Longitude</label>
+              <input class="settings-input" id="s-lng" type="number" step="0.0001" min="-180" max="180" placeholder="-79.4163" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- PRAYER CALCULATION -->
+        <fieldset class="settings-group">
+          <legend class="settings-legend">Prayer Calculation</legend>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-method">Calculation Method</label>
+            <select class="settings-select" id="s-method">
+              <option value="NorthAmerica">ISNA — North America</option>
+              <option value="MuslimWorldLeague">Muslim World League (MWL)</option>
+              <option value="Egyptian">Egyptian General Authority</option>
+              <option value="Karachi">University of Islamic Sciences, Karachi</option>
+              <option value="UmmAlQura">Umm Al-Qura (Makkah)</option>
+              <option value="Dubai">Dubai</option>
+              <option value="Kuwait">Kuwait</option>
+              <option value="Qatar">Qatar</option>
+              <option value="Singapore">Singapore</option>
+              <option value="Turkey">Turkey</option>
+              <option value="Tehran">Tehran (Shia)</option>
+              <option value="MoonsightingCommittee">ISNA Moonsighting Committee</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-asr">Asr Method (Madhab)</label>
+            <select class="settings-select" id="s-asr">
+              <option value="Standard">Standard — Shafi / Maliki / Hanbali</option>
+              <option value="Hanafi">Hanafi</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-hl">High Latitude Rule</label>
+            <select class="settings-select" id="s-hl">
+              <option value="MiddleOfTheNight">Middle of the Night</option>
+              <option value="SeventhOfTheNight">Seventh of the Night</option>
+              <option value="TwilightAngle">Twilight Angle</option>
+              <option value="None">None</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <!-- DISPLAY -->
+        <fieldset class="settings-group">
+          <legend class="settings-legend">Display</legend>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-clockfmt">Clock Format</label>
+            <select class="settings-select" id="s-clockfmt">
+              <option value="12">12-hour (AM / PM)</option>
+              <option value="24">24-hour</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label class="settings-label" for="s-seconds">Show Seconds</label>
+            <label class="settings-toggle">
+              <input type="checkbox" id="s-seconds" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label class="settings-label" for="setting-theme">Display Theme</label>
+            <select class="settings-select" id="setting-theme">
+              <option value="default">Minimal Dark</option>
+              <option value="wallpaper">Islamic Wallpaper</option>
+            </select>
+          </div>
+
+          <div class="settings-row" id="wp-interval-row" style="display:none;">
+            <label class="settings-label" for="s-wp-interval">Image Changes Every</label>
+            <select class="settings-select" id="s-wp-interval" style="max-width:180px;">
+              <option value="20000">20 seconds</option>
+              <option value="30000">30 seconds</option>
+              <option value="60000">1 minute</option>
+              <option value="120000">2 minutes</option>
+              <option value="300000">5 minutes</option>
+            </select>
+          </div>
+
+        </fieldset>
+
+        <!-- ALERTS -->
+        <fieldset class="settings-group">
+          <legend class="settings-legend">Alerts</legend>
+
+          <div class="settings-row">
+            <label class="settings-label" for="fajr-sound-type">Fajr Alert Type</label>
+            <select class="settings-select" id="fajr-sound-type">
+              <option value="athan">Full Athan</option>
+              <option value="beep">Beep Only</option>
+              <option value="none">Silent</option>
+            </select>
+          </div>
+        </fieldset>
+
+      </div><!-- /.settings-body -->
+
+      <div class="settings-footer">
+        <button class="settings-save" id="settings-save">Save &amp; Apply</button>
+        <button class="settings-cancel" id="settings-cancel">Cancel</button>
+      </div>
+
+    </div><!-- /.settings-modal -->
+  </div><!-- /.settings-overlay -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN CONTENT AREA
+  ════════════════════════════════════════════════════════ -->
+  <main class="app-main">
+
+    <!-- ─── CLOCK SECTION ─────────────────────────────── -->
+    <section class="clock-section" aria-label="Current time">
+
+      <!-- Digital time -->
+      <div class="time-row">
+        <div class="time-display" id="time-display">
+          <span id="clock-h">12</span><span class="colon blink">:</span><span id="clock-m">00</span><span class="colon blink">:</span><span id="clock-s">00</span>
+        </div>
+        <div class="ampm-display" id="ampm-display">AM</div>
+      </div>
+
+      <!-- Gregorian date -->
+      <div class="date-gregorian" id="date-gregorian">Tuesday, 26 May 2026</div>
+
+      <!-- Hijri date -->
+      <div class="date-hijri" id="date-hijri" lang="ar">—</div>
+
+    </section>
+
+    <!-- ─── PRAYER TIMES GRID ────────────────────────── -->
+    <section class="prayers-section" aria-label="Daily prayer times">
+
+      <div class="prayers-grid">
+
+        <!-- Fajr -->
+        <article class="prayer-card" id="prayer-fajr" data-prayer="fajr">
+          <div class="prayer-icon">🌙</div>
+          <div class="prayer-name-en">Fajr</div>
+          <div class="prayer-name-ar" lang="ar">الفجر</div>
+          <div class="prayer-time" id="time-fajr">—:——</div>
+          <div class="prayer-status" id="status-fajr"></div>
+        </article>
+
+        <!-- Sunrise / Shuruq -->
+        <article class="prayer-card" id="prayer-sunrise" data-prayer="sunrise">
+          <div class="prayer-icon">🌅</div>
+          <div class="prayer-name-en">Shuruq</div>
+          <div class="prayer-name-ar" lang="ar">الشروق</div>
+          <div class="prayer-time" id="time-sunrise">—:——</div>
+          <div class="prayer-status" id="status-sunrise"></div>
+        </article>
+
+        <!-- Dhuhr -->
+        <article class="prayer-card" id="prayer-dhuhr" data-prayer="dhuhr">
+          <div class="prayer-icon">☀️</div>
+          <div class="prayer-name-en">Dhuhr</div>
+          <div class="prayer-name-ar" lang="ar">الظهر</div>
+          <div class="prayer-time" id="time-dhuhr">—:——</div>
+          <div class="prayer-status" id="status-dhuhr"></div>
+        </article>
+
+        <!-- Asr -->
+        <article class="prayer-card" id="prayer-asr" data-prayer="asr">
+          <div class="prayer-icon">🌤️</div>
+          <div class="prayer-name-en">Asr</div>
+          <div class="prayer-name-ar" lang="ar">العصر</div>
+          <div class="prayer-time" id="time-asr">—:——</div>
+          <div class="prayer-status" id="status-asr"></div>
+        </article>
+
+        <!-- Maghrib -->
+        <article class="prayer-card" id="prayer-maghrib" data-prayer="maghrib">
+          <div class="prayer-icon">🌇</div>
+          <div class="prayer-name-en">Maghrib</div>
+          <div class="prayer-name-ar" lang="ar">المغرب</div>
+          <div class="prayer-time" id="time-maghrib">—:——</div>
+          <div class="prayer-status" id="status-maghrib"></div>
+        </article>
+
+        <!-- Isha -->
+        <article class="prayer-card" id="prayer-isha" data-prayer="isha">
+          <div class="prayer-icon">🌙</div>
+          <div class="prayer-name-en">Isha</div>
+          <div class="prayer-name-ar" lang="ar">العشاء</div>
+          <div class="prayer-time" id="time-isha">—:——</div>
+          <div class="prayer-status" id="status-isha"></div>
+        </article>
+
+      </div><!-- /.prayers-grid -->
+
+    </section><!-- /.prayers-section -->
+
+    <!-- ─── COUNTDOWN SECTION ─────────────────────────── -->
+    <section class="countdown-section" aria-label="Countdown to next prayer">
+
+      <div class="countdown-label">
+        Next Prayer: <span id="next-prayer-name" class="next-prayer-accent">—</span>
+      </div>
+
+      <div class="countdown-display" id="countdown-display">
+        <div class="cd-unit">
+          <span class="cd-digits" id="cd-h">00</span>
+          <span class="cd-label">hrs</span>
+        </div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit">
+          <span class="cd-digits" id="cd-m">00</span>
+          <span class="cd-label">min</span>
+        </div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit">
+          <span class="cd-digits" id="cd-s">00</span>
+          <span class="cd-label">sec</span>
+        </div>
+      </div>
+
+    </section><!-- /.countdown-section -->
+
+  </main><!-- /.app-main -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       QURAN VERSE BANNER — bottom of screen
+  ════════════════════════════════════════════════════════ -->
+  <footer class="quran-banner" aria-label="Quran verse">
+
+    <div class="quran-decoration left">❖</div>
+
+    <div class="verse-wrapper">
+      <div class="verse-container" id="verse-container">
+        <div class="verse-arabic"  id="verse-arabic"  lang="ar">﷽</div>
+        <div class="verse-translation" id="verse-translation">In the name of Allah, the Most Gracious, the Most Merciful.</div>
+        <div class="verse-reference"   id="verse-reference">Al-Fatiha 1:1</div>
+      </div>
+    </div>
+
+    <div class="quran-decoration right">❖</div>
+
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════
+       Hidden audio element — Athan playback
+  ════════════════════════════════════════════════════════ -->
+  <audio id="athan-audio" preload="auto"></audio>
+
+  <!-- ═══════════════════════════════════════════════════════
+       Scripts (loaded last for performance)
+  ════════════════════════════════════════════════════════ -->
+  <script src="config.js"></script>
+  <script src="renderer.js"></script>
+
+</body>
+</html>

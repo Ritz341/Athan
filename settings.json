@@ -1,0 +1,16 @@
+{
+  "location": {
+    "latitude": 38.811714,
+    "longitude": -91.1304259,
+    "city": "WARRENTON, MISSOURI"
+  },
+  "calculationMethod": "NorthAmerica",
+  "asrMethod": "Hanafi",
+  "highLatitudeRule": "MiddleOfTheNight",
+  "display": {
+    "clockFormat": "12",
+    "showSeconds": false,
+    "theme": "wallpaper",
+    "wallpaperIntervalMs": 20000
+  }
+}
