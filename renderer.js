@@ -28,6 +28,11 @@ const path   = require('path');
 const https  = require('https');
 const http   = require('http');
 
+// When running as a portable .exe, electron-builder sets PORTABLE_EXECUTABLE_DIR
+// to the folder where the .exe lives.  We write settings + cache there so they
+// survive across runs even though __dirname points to a temp extraction folder.
+const APP_DIR = process.env.PORTABLE_EXECUTABLE_DIR || __dirname;
+
 // CONFIG is injected by config.js (loaded before this script in index.html).
 // We keep a live mutable copy so settings changes apply without restart.
 let LOC         = { ...CONFIG.location };
@@ -41,7 +46,7 @@ let DISP_CFG    = { ...CONFIG.display };
 // ─────────────────────────────────────────────────────────────
 //  Settings — persist user overrides to settings.json
 // ─────────────────────────────────────────────────────────────
-const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+const SETTINGS_FILE = path.join(APP_DIR, 'settings.json');
 
 function loadSettings() {
   try {
@@ -290,6 +295,7 @@ function applyTheme(themeName, intervalMs) {
 //  Quran Verses (Arabic + English + Surah reference)
 // ─────────────────────────────────────────────────────────────
 const VERSES = [
+  // --- ORIGINAL ENTRIES ---
   { ar: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', en: 'In the name of Allah, the Most Gracious, the Most Merciful.', ref: 'Al-Fatiha 1:1' },
   { ar: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ', en: 'All praise is due to Allah, Lord of all the worlds.', ref: 'Al-Fatiha 1:2' },
   { ar: 'إِنَّ مَعَ ٱلْعُسْرِ يُسْرًا', en: 'Indeed, with hardship comes ease.', ref: 'Ash-Sharh 94:6' },
@@ -315,6 +321,116 @@ const VERSES = [
   { ar: 'تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَىْءٍ قَدِيرٌ', en: 'Blessed is He in whose hand is dominion, and He is over all things competent.', ref: 'Al-Mulk 67:1' },
   { ar: 'وَٱعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ ٱلْيَقِينُ', en: 'And worship your Lord until there comes to you the certainty.', ref: 'Al-Hijr 15:99' },
   { ar: 'سُبْحَٰنَ رَبِّكَ رَبِّ ٱلْعِزَّةِ عَمَّا يَصِفُونَ', en: 'Glory be to your Lord, the Lord of might, above what they describe.', ref: 'As-Saffat 37:180' },
+
+  // --- NEW QURANIC VERSES (MOTIVATION, HOPES, & LIFE LESSONS) ---
+  { ar: 'لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ', en: 'If you are grateful, I will surely increase you.', ref: 'Ibrahim 14:7' },
+  { ar: 'قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنفُسِهِمْ لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ', en: 'Say, "O My servants who have transgressed against themselves, do not despair of the mercy of Allah."', ref: 'Az-Zumar 39:53' },
+  { ar: 'وَتَزَوَّدُوا فَإِنَّ خَيْرَ الزَّادِ التَّقْوَىٰ', en: 'And take provisions, but indeed, the best provision is righteousness.', ref: 'Al-Baqarah 2:197' },
+  { ar: 'وَقُل رَّبِّ زِدْنِي عِلْمًا', en: 'And say, "My Lord, increase me in knowledge."', ref: 'Taha 20:114' },
+  { ar: 'عَسَىٰ أَن تَكْرَهُوا شَيْئًا وَهُوَ خَيْرٌ لَّكُمْ', en: 'Perhaps you hate a thing and it is good for you.', ref: 'Al-Baqarah 2:216' },
+  { ar: 'وَعَسَىٰ أَن تُحِبُّوا شَيْئًا وَهُوَ شَرٌّ لَّكُمْ ۗ وَاللَّهُ يَعْلَمُ وَأَنتُمْ لَا تَعْلَمُونَ', en: 'And perhaps you love a thing and it is bad for you. And Allah knows, while you know not.', ref: 'Al-Baqarah 2:216' },
+  { ar: 'إِنَّ اللَّهَ يُحِبُّ التَّوَّابِينَ وَيُحِبُّ الْمُتَطَهِّرِينَ', en: 'Indeed, Allah loves those who are constantly repentant and loves those who purify themselves.', ref: 'Al-Baqarah 2:222' },
+  { ar: 'وَأَحْسِنُوا ۛ إِنَّ اللَّهَ يُحِبُّ الْمُحْسِنِينَ', en: 'And do good; indeed, Allah loves the doers of good.', ref: 'Al-Baqarah 2:195' },
+  { ar: 'إِنَّ اللَّهَ يُحِبُّ الْمُتَوَكِّلِينَ', en: 'Indeed, Allah loves those who rely [upon Him].', ref: 'Ali \'Imran 3:159' },
+  { ar: 'فَاصْبِرْ صَبْرًا جَمِيلًا', en: 'So be patient with a beautiful patience.', ref: 'Al-Ma\'arij 70:5' },
+  { ar: 'وَاصْبِرْ وَمَا صَبْرُكَ إِلَّا بِاللَّهِ', en: 'And be patient, and your patience is not but through Allah.', ref: 'An-Nahl 16:127' },
+  { ar: 'وَالَّذِينَ جَاهَدُوا فِينَا لَنَهْدِيَنَّهُمْ سُبُلَنَا', en: 'And those who strive for Us - We will surely guide them to Our ways.', ref: 'Al-\'Ankabut 29:69' },
+  { ar: 'إِنَّ اللَّهَ مَعَ الَّذِينَ اتَّقَوا وَّالَّذِينَ هُم مُّحْسِنُونَ', en: 'Indeed, Allah is with those who fear Him and those who are doers of good.', ref: 'An-Nahl 16:128' },
+  { ar: 'وَمَن يَقْتَرِفْ حَسَنَةً نَّزِدْ لَهُ فِيهَا حُسْنًا', en: 'And whoever commits a good deed - We will increase for him good therein.', ref: 'Ash-Shura 42:22' },
+  { ar: 'إِنَّ الْحَسَنَاتِ يُذْهِبْنَ السَّيِّئَاتِ', en: 'Indeed, good deeds do away with misdeeds.', ref: 'Hud 11:114' },
+  { ar: 'فَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًا يَرَهُ', en: 'So whoever does an atom\'s weight of good will see it.', ref: 'Az-Zalzalah 99:7' },
+  { ar: 'وَقُولُوا لِلنَّاسِ حُسْنًا', en: 'And speak to people good words.', ref: 'Al-Baqarah 2:83' },
+  { ar: 'ادْفَعْ بِالَّتِي هِيَ أَحْسَنُ', en: 'Repel [evil] by that [deed] which is better.', ref: 'Fussilat 41:34' },
+  { ar: 'وَالْكَاظِمِينَ الْغَيْظَ وَالْعَافِينَ عَنِ النَّاسِ', en: 'And who restrain anger and who pardon the people.', ref: 'Ali \'Imran 3:134' },
+  { ar: 'فَإِذَا عَزَمْتَ فَتَوَكَّلْ عَلَى اللَّهِ', en: 'And when you have decided, then rely upon Allah.', ref: 'Ali \'Imran 3:159' },
+  { ar: 'وَلَا تَهِنُوا وَلَا تَحْزَنُوا وَأَنتُمُ الْأَعْلَوْنَ إِن كُنتُم مُّؤْمِنِينَ', en: 'So do not weaken and do not grieve, and you will be superior if you are [true] believers.', ref: 'Ali \'Imran 3:139' },
+  { ar: 'إِن يَنصُرْكُمُ اللَّهِ فَلَا غَالِبَ لَكُمْ', en: 'If Allah should aid you, no one can overcome you.', ref: 'Ali \'Imran 3:160' },
+  { ar: 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا', en: 'Our Lord, let not our hearts deviate after You have guided us.', ref: 'Ali \'Imran 3:8' },
+  { ar: 'يَا أَيُّهَا النَّاسُ أَنْتُمُ الْفُقَرَاءُ إِلَى اللَّهِ ۖ وَاللَّهُ هُوَ الْغَنِيُّ الْحَمِيدُ', en: 'O mankind, you are those in need of Allah, while Allah is the Free of need, the Praiseworthy.', ref: 'Fatir 35:15' },
+  { ar: 'مَنْ عَمِلَ صَالِحًا مِّن ذَكَرٍ أَوْ أُنثَىٰ وَهُوَ مُؤْمِنٌ فَلَنُحْيِيَنَّهُ حَيَاةً طَيِّبَةً', en: 'Whoever does righteousness, whether male or female, while he is a believer - We will surely cause him to live a good life.', ref: 'An-Nahl 16:97' },
+  { ar: 'وَأَن لَّيْسَ لِلْإِنسَانِ إِلَّا مَا سَعَىٰ', en: 'And that there is not for man except that for which he strives.', ref: 'An-Najm 53:39' },
+  { ar: 'وَأَنَّ سَعْيَهُ سَوْفَ يُرَىٰ', en: 'And that his effort is going to be seen.', ref: 'An-Najm 53:40' },
+  { ar: 'وَلَسَوْفَ يُعْطِيكَ رَبُّكَ فَتَرْضَىٰ', en: 'And your Lord is going to give you, and you will be satisfied.', ref: 'Ad-Duha 93:5' },
+  { ar: 'أَلَمْ يَجِدْكَ يَتِيمًا فَآوَىٰ', en: 'Did He not find you an orphan and give [you] refuge?', ref: 'Ad-Duha 93:6' },
+  { ar: 'وَوَجَدَكَ ضَالًّا فَهَدَىٰ', en: 'And He found you lost and guided [you].', ref: 'Ad-Duha 93:7' },
+  { ar: 'وَوَجَدَكَ عَائِلًا فَأَغْنَىٰ', en: 'And He found you poor and made [you] self-sufficient.', ref: 'Ad-Duha 93:8' },
+  { ar: 'مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ', en: 'Your Lord has not taken leave of you, nor has He detested you.', ref: 'Ad-Duha 93:3' },
+  { ar: 'وَلَلْآخِرَةُ خَيْرٌ لَّكَ مِنَ الْأُولَىٰ', en: 'And the Hereafter is better for you than the first [life].', ref: 'Ad-Duha 93:4' },
+  { ar: 'فَاجْعَلْ أَفْئِدَةً مِّنَ النَّاسِ تَهْوِي إِلَيْهِمْ', en: 'So make hearts among the people incline toward them.', ref: 'Ibrahim 14:37' },
+  { ar: 'وَجَعَلْنَا بَعْضَكُمْ لِبَعْضٍ فِتْنَةً أَتَصْبِرُونَ', en: 'And We have made some of you as a trial for others - will you have patience?', ref: 'Al-Furqan 25:20' },
+  { ar: 'وَمَا كَانَ رَبُّكَ نَسِيًّا', en: 'And never is your Lord forgetful.', ref: 'Maryam 19:64' },
+  { ar: 'قَالَ لَا تَخَافَا ۖ إِنَّنِي مَعَكُمَا أَسْمَعُ وَأَرَىٰ', en: 'He said, "Fear not. Indeed, I am with you both; I hear and I see."', ref: 'Taha 20:46' },
+  { ar: 'إِنَّ رَبِّي لَسَمِيعُ الدُّعَاءِ', en: 'Indeed, my Lord is the Hearer of supplication.', ref: 'Ibrahim 14:39' },
+  { ar: 'رَبِّ اشْرَحْ لِي صَدْرِي', en: 'My Lord, expand for me my breast [with assurance].', ref: 'Taha 20:25' },
+  { ar: 'وَيَسِّرْ لِي أَمْرِي', en: 'And ease for me my task.', ref: 'Taha 20:26' },
+  { ar: 'وَاحْلُلْ عُقْدَةً مِّن لِّسَانِي', en: 'And untie the knot from my tongue.', ref: 'Taha 20:27' },
+  { ar: 'يَفْقَهُوا قَوْلِي', en: 'That they may understand my speech.', ref: 'Taha 20:28' },
+  { ar: 'أَنِّي مَسَّنِيَ الضُّرُّ وَأَنتَ أَرْحَمُ الرَّاحِمِينَ', en: '"Indeed, adversity has touched me, and you are the Most Merciful of the merciful."', ref: 'Al-Anbiya 21:83' },
+  { ar: 'لَّا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ', en: '"There is no deity except You; exalted are You. Indeed, I have been of the wrongdoers."', ref: 'Al-Anbiya 21:87' },
+  { ar: 'فَاسْتَجَبْنَا لَهُ وَنَجَّيْنَاهُ مِنَ الْغَمِّ ۚ وَكَذَٰلِكَ نُنجِي الْمُؤْمِنِينَ', en: 'So We answered him and delivered him from the distress. And thus do We save the believers.', ref: 'Al-Anbiya 21:88' },
+  { ar: 'رَبِّ لَا تَذَرْنِي فَرْدًا وَأَنتَ خَيْرُ الْوَارِثِينَ', en: '"My Lord, do not leave me alone [with no heir], while you are the best of inheritors."', ref: 'Al-Anbiya 21:89' },
+  { ar: 'وَخُلِقَ الْإِنزَانُ ضَعِيفًا', en: 'And mankind was created weak.', ref: 'An-Nisa 4:28' },
+  { ar: 'يُرِيدُ اللَّهُ أَن يُخَفِّفَ عَنكُمْ', en: 'Allah intends to lighten [the burden] for you.', ref: 'An-Nisa 4:28' },
+  { ar: 'إِنَّ رَحْمَتَ اللَّهِ قَرِيبٌ مِّنَ الْمُحْسِنِينَ', en: 'Indeed, the mercy of Allah is near to the doers of good.', ref: 'Al-A\'raf 7:56' },
+  { ar: 'وَأُفَوِّضُ أَمْرِي إِلَى اللَّهِ ۚ إِنَّ اللَّهَ بَصِيرٌ بِالْعِبَادِ', en: 'And I entrust my affair to Allah. Indeed, Allah is Seeing of [His] servants.', ref: 'Ghafir 40:44' },
+  { ar: 'قُلْ لَنْ يُصِيبَنَا إِلَّا مَا كَتَبَ اللَّهُ لَنَا', en: 'Say, "Never will we be struck except by what Allah has decreed for us."', ref: 'At-Tawbah 9:51' },
+  { ar: 'هُوَ مَوْلَانَا ۚ وَعَلَى اللَّهِ فَلْيَتَوَكَّلِ الْمُؤْمِنُونَ', en: 'He is our protector; and upon Allah let the believers rely.', ref: 'At-Tawbah 9:51' },
+  { ar: 'وَتَوَكَّلْ عَلَى الْحَيِّ الَّذِي لَا يَمُوتُ', en: 'And rely upon the Ever-Living who does not die.', ref: 'Al-Furqan 25:58' },
+  { ar: 'الَّذِي خَلَقَنِي فَهُوَ يَهْدِينِ', en: 'Who created me, and He [it is who] guides me.', ref: 'Ash-Shu\'ara 26:78' },
+  { ar: 'وَالَّذِي هُوَ يُطْعِمُنِي وَيَسْقِينِ', en: 'And it is He who feeds me and gives me drink.', ref: 'Ash-Shu\'ara 26:79' },
+  { ar: 'وَإِذَا مَرِضْتُ فَهُوَ يَشْفِينِ', en: 'And when I am ill, it is He who cures me.', ref: 'Ash-Shu\'ara 26:80' },
+  { ar: 'إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ', en: 'Indeed, this Quran guides to that which is most suitable.', ref: 'Al-Isra 17:9' },
+  { ar: 'وَنُنَزِّلُ مِنَ الْقُرْآنِ مَا هُوَ شِفَاءٌ وَرَحْمَةٌ لِّلْمُؤْمِنِينَ', en: 'And We send down of the Quran that which is healing and mercy for the believers.', ref: 'Al-Isra 17:82' },
+  { ar: 'يَا أَيُّهَا الْإِنسَانُ مَا غَرَّكَ بِرَبِّكَ الْكَرِيمِ', en: 'O mankind, what has deceived you concerning your Lord, the Generous?', ref: 'Al-Infitar 82:6' },
+  { ar: 'فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ أَنتَ وَلِيِّي فِي الدُّنْيَا وَالْآخِرَةِ', en: 'Creator of the heavens and earth, You are my protector in this world and the Hereafter.', ref: 'Yusuf 12:101' },
+  { ar: 'تَوَفَّنِي مُسْلِمًا وَأَلْحِقْنِي بِالصَّالِحِينَ', en: 'Cause me to die a Muslim and join me with the righteous.', ref: 'Yusuf 12:101' },
+  { ar: 'إِنَّ اللَّهَ مَعَنَا', en: '"Do not grieve; indeed Allah is with us."', ref: 'At-Tawbah 9:40' },
+  { ar: 'وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ۚ عَلَيْهِ تَوَكَّلْتُ وَإِلَيْهِ أُنِيبُ', en: 'And my success is not but through Allah. Upon Him I have relied, and to Him I return.', ref: 'Hud 11:88' },
+
+  // --- SAHIH HADITH (PROPHETIC WISDOM FROM PROPHET MUHAMMAD, peace be upon him) ---
+  { ar: 'إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ', en: 'Actions are judged by motives and intentions.', ref: 'Sahih al-Bukhari 1' },
+  { ar: 'إِنَّ اللَّهَ رَفِيقٌ يُحِبُّ الرِّفْقَ', en: 'Indeed, Allah is gentle and He loves gentleness.', ref: 'Sahih Muslim 2593' },
+  { ar: 'الدِّينُ النَّصِيحَةُ', en: 'The religion is sincere advice.', ref: 'Sahih Muslim 55' },
+  { ar: 'لَا يَشْكُرُ اللَّهَ مَنْ لَا يَشْكُرُ النَّاسَ', en: 'He who does not thank the people does not thank Allah.', ref: 'Sunan Abi Dawud 4811 (Sahih)' },
+  { ar: 'الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ', en: 'A good word is a charitable act.', ref: 'Sahih al-Bukhari 2989' },
+  { ar: 'تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ', en: 'Your smiling in the face of your brother is charity.', ref: 'Jami\' at-Tirmidhi 1956 (Sahih)' },
+  { ar: 'الْمُؤْمِنُ الْقَوِيُّ خَيْرٌ وَأَحَبُّ إِلَى اللَّهِ مِنَ الْمُؤْمِنِ الضَّعِيفِ', en: 'A strong believer is better and more lovable to Allah than a weak believer.', ref: 'Sahih Muslim 2664' },
+  { ar: 'احْرِصْ عَلَى مَا يَنْفَعُكَ وَاسْتَعِنْ بِاللَّهِ وَلَا تَعْجِزْ', en: 'Cherish that which gives you benefit, seek help from Allah and do not lose heart.', ref: 'Sahih Muslim 2664' },
+  { ar: 'وَإِنْ أَصَابَكَ شَيْءٌ فَلَا تَقُلْ لَوْ أَنِّي فَعَلْتُ كَانَ كَذَا وَكَذَا', en: 'If anything afflicts you, do not say: "If I had only done such and such..."', ref: 'Sahih Muslim 2664' },
+  { ar: 'قُلْ قَدَرُ اللَّهِ وَمَا شَاءَ فَعَلَ', en: 'Say: "It is the decree of Allah and He does what He wills."', ref: 'Sahih Muslim 2664' },
+  { ar: 'يَسِّرُوا وَلَا تُعَسِّرُوا ، وَبَشِّرُوا وَلَا تُنَفِّرُوا', en: 'Make things easy for people and do not make them difficult, give good tidings and do not repel them.', ref: 'Sahih al-Bukhari 6125' },
+  { ar: 'خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ', en: 'The best among you are those who learn the Quran and teach it.', ref: 'Sahih al-Bukhari 5027' },
+  { ar: 'اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ', en: 'Fear Allah wherever you may be.', ref: 'Jami\' at-Tirmidhi 1987 (Sahih)' },
+  { ar: 'وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا', en: 'Follow up a bad deed with a good deed and it will wipe it out.', ref: 'Jami\' at-Tirmidhi 1987 (Sahih)' },
+  { ar: 'وَخَالِقِ النَّاسَ بِخُلُقٍ حَسَنٍ', en: 'And behave towards the people with a good character.', ref: 'Jami\' at-Tirmidhi 1987 (Sahih)' },
+  { ar: 'احْفَظِ اللَّهَ يَحْفَظْكَ', en: 'Be mindful of Allah and He will protect you.', ref: 'Jami\' at-Tirmidhi 2516 (Sahih)' },
+  { ar: 'احْفَظِ اللَّهَ تَجِدْهُ تُجَاهَكَ', en: 'Be mindful of Allah and you will find Him in front of you.', ref: 'Jami\' at-Tirmidhi 2516 (Sahih)' },
+  { ar: 'إِذَا سَأَلْتَ فَاسْأَلِ اللَّهَ', en: 'When you ask, ask Allah [alone].', ref: 'Jami\' at-Tirmidhi 2516 (Sahih)' },
+  { ar: 'وَإِذَا اسْتَعَنْتَ فَاسْتَعِنْ بِاللَّهِ', en: 'And when you seek assistance, seek an assistance from Allah.', ref: 'Jami\' at-Tirmidhi 2516 (Sahih)' },
+  { ar: 'وَاعْلَمْ أَنَّ النَّصْرَ مَعَ الصَّبْرِ', en: 'And know that victory comes with patience.', ref: 'Musnad Ahmad 2803 (Sahih)' },
+  { ar: 'وَأَنَّ الْفَرَجَ مَعَ الْكَرْبِ', en: 'And relief comes with distress.', ref: 'Musnad Ahmad 2803 (Sahih)' },
+  { ar: 'أَقْرَبُ مَا يَكُونُ الْعَبْدُ مِنْ رَبِّهِ وَهُوَ سَاجِدٌ', en: 'The nearest a servant comes to his Lord is when he is prostrating.', ref: 'Sahih Muslim 482' },
+  { ar: 'مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ', en: 'Whoever takes a path upon which to obtain knowledge, Allah makes the path to Paradise easy for him.', ref: 'Sahih Muslim 2699' },
+  { ar: 'إِنَّ اللَّهَ لَا يَنْظُرُ إِلَى صُوَرِكُمْ وَأَمْوَالِكُمْ وَلَكِنْ يَنْظُرُ إِلَى قُلُوبِكُمْ وَأَعْمَالِكُمْ', en: 'Verily Allah does not look at your faces and your wealth, but He looks at your hearts and your deeds.', ref: 'Sahih Muslim 2564' },
+  { ar: 'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ', en: 'Whoever believes in Allah and the Last Day should speak what is good or keep quiet.', ref: 'Sahih al-Bukhari 6018' },
+  { ar: 'لاَ يَدْخُلُ الْجَنَّةَ مَنْ كَانَ فِي قَلْبِهِ مِثْقَالُ ذَرَّةٍ مِنْ كِبْرٍ', en: 'He who has in his heart the weight of a mustard seed of pride shall not enter Paradise.', ref: 'Sahih Muslim 91' },
+  { ar: 'لَيْسَ الْغِنَى عَنْ كَثْرَةِ الْعَرَضِ وَلَكِنَّ الْغِنَى غِنَى النَّفْسِ', en: 'Richness does not lie in the abundance of worldly goods, but true richness is the richness of the soul.', ref: 'Sahih al-Bukhari 6446' },
+  { ar: 'مَنْ لاَ يَرْحَمِ النَّاسَ لاَ يَرْحَمْهُ اللَّهُ', en: 'He who does not show mercy to the people, Allah will not show mercy to him.', ref: 'Sahih Muslim 2319' },
+  { ar: 'أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ', en: 'The most beloved of deeds to Allah are those that are most consistent, even if they are small.', ref: 'Sahih al-Bukhari 5861' },
+  { ar: 'مَنْ صَلَّى عَلَىَّ وَاحِدَةً صَلَّى اللَّهُ عَلَيْهِ عَشْرًا', en: 'Whoever sends blessings upon me once, Allah will send blessings upon him ten times.', ref: 'Sahih Muslim 408' },
+  { ar: 'الدُّعَاءُ هُوَ الْعِبَادَةُ', en: 'Supplication (Dua) is the essence of worship.', ref: 'Jami\' at-Tirmidhi 2969 (Sahih)' },
+  { ar: 'إِنَّ الدِّينَ يُسْرٌ', en: 'Indeed, the religion is easy.', ref: 'Sahih al-Bukhari 39' },
+  { ar: 'طُوبَى لِمَنْ وَجَدَ فِي صَحِيفَتِهِ اسْتِغْفَارًا كَثِيرًا', en: 'Glad tidings to him who finds a lot of seeking forgiveness in his record.', ref: 'Sunan Ibn Majah 3818 (Sahih)' },
+  { ar: 'مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ', en: 'Charity does not decrease wealth.', ref: 'Sahih Muslim 2588' },
+  { ar: 'وَمَا زَادَ اللَّهُ عَبْدًا بِعَفْوٍ إِلاَّ عِزًّا', en: 'And Allah increases the honor of him who forgives.', ref: 'Sahih Muslim 2588' },
+  { ar: 'وَمَا تَوَاضَعَ أَحَدٌ لِلَّهِ إِلاَّ رَفَعَهُ اللَّهُ', en: 'And no one humbles himself before Allah but Allah will exalt him.', ref: 'Sahih Muslim 2588' },
+  { ar: 'الْطهُورُ شَطْرُ الإِيمَانِ', en: 'Purity is half of faith.', ref: 'Sahih Muslim 223' },
+  { ar: 'الْحَمْدُ لِلَّهِ تَمْلأُ الْمِيزَانَ', en: 'Saying "Al-Hamdulillah" (All praise belongs to Allah) fills the scale.', ref: 'Sahih Muslim 223' },
+  { ar: 'وَالصَّلاَةُ نُورٌ', en: 'And prayer is a light.', ref: 'Sahih Muslim 223' },
+  { ar: 'وَالصَّدَقَةُ بُرْهَانٌ', en: 'And charity is a proof of faith.', ref: 'Sahih Muslim 223' },
+  { ar: 'وَالصَّبْرُ ضِيَاءٌ', en: 'And patience is a bright glow.', ref: 'Sahih Muslim 223' },
+  { ar: 'كُلُّ ابْنِ آدَمَ خَطَّاءٌ وَخَيْرُ الْخَطَّائِينَ التَّوَّابُونَ', en: 'Every son of Adam commits sin, and the best of those who commit sin are those who repent.', ref: 'Sunan Ibn Majah 4251 (Sahih)' },
+  { ar: 'لَا تُظْهِرِ الشَّمَاتَةَ لِأَخِيكَ فَيَرْحَمَهُ اللَّهُ وَيَبْتَلِيكَ', en: 'Do not express joy at your brother\'s misfortune, lest Allah have mercy on him and afflict you.', ref: 'Jami\' at-Tirmidhi 2506 (Sahih)' }
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -480,7 +596,7 @@ function apiTimeToDate(timeStr, referenceDate) {
 // ─────────────────────────────────────────────────────────────
 function loadCache(key) {
   try {
-    const cachePath = path.join(__dirname, API_CFG.cacheFile);
+    const cachePath = path.join(APP_DIR, API_CFG.cacheFile);
     if (!fs.existsSync(cachePath)) return null;
     const data = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
     if (data.date !== key) return null;
@@ -495,7 +611,7 @@ function loadCache(key) {
 // ─────────────────────────────────────────────────────────────
 function saveCache(key, timings) {
   try {
-    const cachePath = path.join(__dirname, API_CFG.cacheFile);
+    const cachePath = path.join(APP_DIR, API_CFG.cacheFile);
     const dir = path.dirname(cachePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(cachePath, JSON.stringify({ date: key, timings }), 'utf8');
@@ -1062,6 +1178,49 @@ function setupKeyboardShortcuts() {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Burn-in protection
+//  Two complementary strategies:
+//    1. Pixel drift   — shifts .app-main by a small random offset
+//                       every 4 minutes so static elements never
+//                       sit on the same pixels for long.
+//    2. Dim cycle     — briefly dims the whole screen every 28 min
+//                       (gives the panel a rest and breaks up any
+//                       residual image forming on bright elements).
+//
+//  The slow CSS float animations (clock, countdown) in styles.css
+//  are the third layer — they run independently of this code.
+// ─────────────────────────────────────────────────────────────
+function startBurnInProtection() {
+  const DRIFT_INTERVAL = 4 * 60 * 1000;   // every 4 minutes
+  const DIM_INTERVAL   = 28 * 60 * 1000;  // every 28 minutes
+  const DIM_DURATION   = 9000;            // stay dim for 9 seconds
+
+  // ── Pixel drift ───────────────────────────────────────────
+  setInterval(() => {
+    const el = document.querySelector('.app-main');
+    if (!el) return;
+    // Random offset ±5px horizontal, ±4px vertical
+    const x = (Math.random() * 10 - 5).toFixed(1);
+    const y = (Math.random() * 8  - 4).toFixed(1);
+    el.style.transition = 'transform 8s ease';
+    el.style.transform  = `translate(${x}px, ${y}px)`;
+  }, DRIFT_INTERVAL);
+
+  // ── Periodic dim cycle ────────────────────────────────────
+  setInterval(() => {
+    // Skip if settings modal is open — jarring to dim mid-interaction
+    if (document.querySelector('.settings-overlay.open')) return;
+    document.body.style.transition = 'opacity 2.5s ease';
+    document.body.style.opacity    = '0.20';
+    setTimeout(() => {
+      document.body.style.opacity = '1';
+    }, DIM_DURATION);
+  }, DIM_INTERVAL);
+
+  console.log('[BurnIn] Protection active — drift every 4 min, dim cycle every 28 min');
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Initialise everything
 // ─────────────────────────────────────────────────────────────
 async function init() {
@@ -1097,6 +1256,9 @@ async function init() {
   setupCursorHide();
   setupKeyboardShortcuts();
   setupSettingsModal();
+
+  // Burn-in protection for long-running kiosk display
+  startBurnInProtection();
 
   console.log('[App] Ready. Location:', LOC.city, '| Method:', CALC_METHOD);
 }

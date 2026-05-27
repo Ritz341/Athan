@@ -5,11 +5,12 @@
  * ============================================================
  */
 
-const { app, BrowserWindow, ipcMain, globalShortcut, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, screen, powerSaveBlocker } = require('electron');
 const path = require('path');
 
 // Keep a global reference so the window is not garbage-collected.
-let mainWindow = null;
+let mainWindow       = null;
+let powerBlockerId   = null;  // handle returned by powerSaveBlocker
 
 // ─────────────────────────────────────────────────────────────
 //  Window creation
@@ -86,6 +87,21 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
+  // ── Keep display awake — critical for kiosk / always-on use ──
+  // Tells Windows: "do NOT sleep or dim the screen while I'm running."
+  // This overrides the Surface Go's own power plan screen timeout.
+  powerBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+  console.log('[Power] Display sleep blocked, id:', powerBlockerId);
+
+  // ── Auto-start on Windows login ───────────────────────────
+  // The clock will launch automatically every time the tablet boots.
+  // Remove or set openAtLogin: false if you don't want this behaviour.
+  app.setLoginItemSettings({
+    openAtLogin:  true,
+    openAsHidden: false,
+    name: 'Islamic Smart Clock',
+  });
+
   // ── Global shortcuts ──────────────────────────────────────
   // Allow Escape or F11 to exit fullscreen (useful during development).
   // Remove or comment these out for a fully locked-down kiosk deployment.
@@ -115,6 +131,10 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  // Release the display-sleep block so Windows resumes normal power management
+  if (powerBlockerId !== null && powerSaveBlocker.isStarted(powerBlockerId)) {
+    powerSaveBlocker.stop(powerBlockerId);
+  }
 });
 
 // ─────────────────────────────────────────────────────────────

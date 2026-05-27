@@ -11,6 +11,6 @@
     "clockFormat": "12",
     "showSeconds": false,
     "theme": "wallpaper",
-    "wallpaperIntervalMs": 20000
+    "wallpaperIntervalMs": 60000
   }
 }
